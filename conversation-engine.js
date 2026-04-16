@@ -62,7 +62,7 @@ async function handleSlotSelection(from, body, conversation) {
   if (t.includes("1") || t.includes("first")) idx = 0;
   else if (t.includes("2") || t.includes("second")) idx = 1;
   else if (t.includes("3") || t.includes("third")) idx = 2;
-  else if (t.includes("none") || t.includes("different") || t.includes("other")) {
+  else if (t.includes("none") || t.includes("different") || t.includes("other") || t.includes("monday") || t.includes("tuesday") || t.includes("wednesday") || t.includes("thursday") || t.includes("friday") || t.includes("next week") || t.includes("what about") || t.includes("another")) {
     const ns = await findAvailableSlots(leadData.urgency || "soon", 3);
     if (ns && ns.length) { leadData.available_slots = ns.map(s=>({start:s.start.toISOString(),end:s.end.toISOString(),travelEnd:s.travelEnd.toISOString()})); updateConversation(from,"selecting_slot",leadData); const r="No problem! Here are other openings:\n\n"+formatSlotsForSMS(ns)+"\n\nDo any work?"; logMessage(from,"assistant",r,null); return{text:r,stage:"selecting_slot",qualified:true,leadData}; }
   }
@@ -81,7 +81,7 @@ async function handleSlotSelection(from, body, conversation) {
       return{text:"Our team will call to schedule. Call 208-888-3611!",stage:"complete",qualified:true,leadData};
     }
   }
-  const mh=buildMessageHistory(from);const sc=buildStateContext(conversation,{score:"neutral",override:false,summary:""});const ar=await callClaude(mh,sc);logMessage(from,"assistant",ar,null);return{text:ar,stage:"selecting_slot",qualified:true,leadData};
+  const mh=buildMessageHistory(from);const sc=buildStateContext(conversation,{score:"neutral",override:false,summary:""});const ar=await callClaude(mh,sc);const cleanReply=ar.replace(/\[\[LEAD_DATA:[^\]]+\]\]/g,"").replace(/\[\[QUALIFIED\]\]/g,"").trim();logMessage(from,"assistant",cleanReply,null);return{text:cleanReply,stage:"selecting_slot",qualified:true,leadData};
 }
 
 async function handleCancellation(from, body, conversation) {
