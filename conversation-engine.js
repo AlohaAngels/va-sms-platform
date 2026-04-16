@@ -94,7 +94,7 @@ async function handleCancellation(from, body, conversation) {
 }
 
 function isCancellationRequest(t){const l=t.toLowerCase();return l.includes("cancel")||l.includes("can't make it")||l.includes("cant make it")||l.includes("need to reschedule")||l.includes("won't be able");}
-function isSlotSelection(t){const l=t.trim().toLowerCase();return /^[1-3]$/.test(l)||l.includes("first")||l.includes("second")||l.includes("third")||l.includes("one")||l.includes("two")||l.includes("three")||l.includes("none")||l.includes("different")||l.includes("other day");}
+function isSlotSelection(t){const l=t.trim().toLowerCase();return /^[1-3]$/.test(l)||l.includes("first")||l.includes("second")||l.includes("third")||l.includes("one")||l.includes("two")||l.includes("three")||l.includes("none")||l.includes("different")||l.includes("other day")||l.includes("monday")||l.includes("tuesday")||l.includes("wednesday")||l.includes("thursday")||l.includes("friday")||l.includes("next week")||l.includes("later")||l.includes("another")||l.includes("what about")||l.includes("do you have");}
 function isOptOut(m){return["stop","unsubscribe","cancel","quit","opt out","optout"].includes(m.trim().toLowerCase());}
 function handleOptOut(p){db.prepare("UPDATE conversations SET stage='opted_out',updated_at=datetime('now') WHERE phone=?").run(p);return{text:"You've been unsubscribed. Text again or call (208) 888-3611 anytime. Take care!",stage:"opted_out",qualified:false,leadData:{}};}
 
