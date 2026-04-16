@@ -147,7 +147,7 @@ export async function findAvailableSlots(urgency, count = 3) {
   switch (urgency) {
     case "immediate":
       // Next 48 hours, any day M-F
-      searchEndDate.setDate(searchEndDate.getDate() + 5); // Look ahead 5 days to ensure 48hrs of weekdays
+      searchEndDate.setDate(searchEndDate.getDate() + 10); // Look ahead 5 days to ensure 48hrs of weekdays
       break;
     case "soon":
       // This week first (first in the door!), then up to 2 weeks out
@@ -212,11 +212,6 @@ export async function findAvailableSlots(urgency, count = 3) {
         continue;
       }
 
-      // For immediate urgency, skip if more than 48 hours out
-      if (urgency === "immediate") {
-        const hoursFromNow = (slotStart - now) / (1000 * 60 * 60);
-        if (hoursFromNow > 72) continue; // Allow 72 hours to get 3 good options
-      }
 
       // Check if slot conflicts with any busy time
       const hasConflict = busyTimes.some(busy => {
