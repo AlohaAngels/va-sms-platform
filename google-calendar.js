@@ -129,7 +129,7 @@ async function getBusyTimes(startDate, endDate) {
 // ─── Smart Slot Finder ───
 // Finds available 2.5-hour blocks (2hr assessment + 30min travel)
 // based on urgency tier and scheduling rules
-export async function findAvailableSlots(urgency, count = 3) {
+export async function findAvailableSlots(urgency, count = 3, preferredDay = null) {
   const ASSESSMENT_DURATION_MIN = 120;  // 2 hours
   const TRAVEL_BUFFER_MIN = 30;         // 30 min travel
   const TOTAL_BLOCK_MIN = ASSESSMENT_DURATION_MIN + TRAVEL_BUFFER_MIN; // 2.5 hours
@@ -218,11 +218,15 @@ export async function findAvailableSlots(urgency, count = 3) {
         return slotStart < busy.end && slotEnd > busy.start;
       });
 
-      if (!hasConflict) {
+     if (!hasConflict) {
+        // If a specific day was requested, only include that day
+        if (preferredDay !== null && dayOfWeek !== preferredDay) {
+          continue;
+        }
         slots.push({
           start: new Date(slotStart),
-          end: new Date(slotStart.getTime() + ASSESSMENT_DURATION_MIN * 60000), // Assessment end (without travel)
-          travelEnd: new Date(slotEnd), // Including travel buffer
+          end: new Date(slotStart.getTime() + ASSESSMENT_DURATION_MIN * 60000),
+          travelEnd: new Date(slotEnd),
           dayOfWeek,
           isMonFri,
           hoursFromNow: (slotStart - now) / (1000 * 60 * 60),
