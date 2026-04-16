@@ -190,9 +190,9 @@ export async function findAvailableSlots(urgency, count = 3) {
 
     // Generate time slots for this day (9am, 11:30am, 2pm)
     const possibleStarts = [
-      { hour: 9, minute: 0 },
-      { hour: 11, minute: 30 },
-      { hour: 14, minute: 0 },
+      { hour: 15, minute: 0 },
+      { hour: 17, minute: 30 },
+      { hour: 20, minute: 0 },
     ];
 
     for (const start of possibleStarts) {
@@ -203,7 +203,7 @@ export async function findAvailableSlots(urgency, count = 3) {
       slotEnd.setMinutes(slotEnd.getMinutes() + TOTAL_BLOCK_MIN);
 
       // Skip if slot end is past business hours
-      if (slotEnd.getHours() > SLOT_END_HOUR || (slotEnd.getHours() === SLOT_END_HOUR && slotEnd.getMinutes() > 30)) {
+      if (slotEnd.getHours() > 23 || (slotEnd.getHours() === 23 && slotEnd.getMinutes() > 30)) {
         continue;
       }
 
