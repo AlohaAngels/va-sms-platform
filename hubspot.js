@@ -45,7 +45,7 @@ export async function syncLeadToHubSpot(phone, leadData) {
   if (!token) return;
 
 
-  }
+ 
 
   try {
     const nameParts = (leadData.name || "").trim().split(/\s+/);
