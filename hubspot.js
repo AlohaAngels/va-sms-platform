@@ -44,10 +44,7 @@ export async function syncLeadToHubSpot(phone, leadData) {
   const token = getToken();
   if (!token) return;
 
-  // Skip demo phone numbers
-  if (phone.includes("DEMO")) {
-    console.log("📋 HubSpot: Skipping demo lead");
-    return;
+
   }
 
   try {
