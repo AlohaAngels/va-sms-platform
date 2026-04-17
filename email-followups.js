@@ -208,7 +208,7 @@ export function scheduleFollowUps(phone, leadData) {
   } else {
     // ═══ NOT BOOKED SEQUENCE ═══
     emails = [
-      { type: "nb_10min", delay_min: 10 },             // 10 minutes
+      { type: "nb_10min", delay_min: 5 },             // 10 minutes
       { type: "nb_day2", delay_hours: 48 },              // Day 2
       { type: "nb_day5", delay_hours: 120 },             // Day 5
       { type: "nb_day15", delay_hours: 360 },            // Day 15 (email only)
