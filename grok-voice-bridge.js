@@ -1,5 +1,5 @@
 // ============================================
-// Grok Voice Agent Bridge - Key Check Version
+// Grok Voice Agent Bridge - Final Version with response.create + full logging
 // ============================================
 import WebSocket from 'ws';
 import { SYSTEM_PROMPT } from './system-prompt.js';
@@ -13,10 +13,7 @@ export function setupGrokVoiceBridge(wss) {
     const callType = url.searchParams.get('type') || 'lead';
     const systemPrompt = callType === 'hr' ? HR_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
-    // === NEW: Confirm key is loaded ===
-    const keyLoaded = process.env.XAI_API_KEY ? `YES (length: ${process.env.XAI_API_KEY.length})` : 'NO';
-    console.log(`[Grok Voice] XAI_API_KEY loaded: ${keyLoaded}`);
-
+    console.log(`[Grok Voice] XAI_API_KEY loaded: ${process.env.XAI_API_KEY ? 'YES (length: ' + process.env.XAI_API_KEY.length + ')' : 'NO'}`);
     console.log(`[Grok Voice] ✅ Twilio connected – type: ${callType}`);
 
     const grokWS = new WebSocket(XAI_URL, {
@@ -27,7 +24,7 @@ export function setupGrokVoiceBridge(wss) {
 
     grokWS.on('open', () => {
       console.log(`[Grok Voice] ✅ Connected to xAI realtime API`);
-      // ... rest of the code (same as before)
+      
       grokWS.send(JSON.stringify({
         type: "session.update",
         session: {
@@ -38,8 +35,15 @@ export function setupGrokVoiceBridge(wss) {
           turn_detection: { type: "server_vad" }
         }
       }));
-      grokReady = true;
       console.log(`[Grok Voice] ✅ session.update sent`);
+
+      // Explicitly start the response (this often fixes silent sessions)
+      setTimeout(() => {
+        grokWS.send(JSON.stringify({ type: "response.create" }));
+        console.log(`[Grok Voice] ✅ response.create sent`);
+      }, 300);
+
+      grokReady = true;
     });
 
     grokWS.on('error', (err) => {
@@ -50,7 +54,7 @@ export function setupGrokVoiceBridge(wss) {
       console.log(`[Grok Voice] xAI WebSocket closed – code: ${code}, reason: ${reason || 'none'}`);
     });
 
-    // ... (rest of the audio forwarding code is the same as the verbose version I gave you earlier)
+    // Twilio audio → Grok
     twilioWS.on('message', (message) => {
       if (!grokReady) {
         console.log(`[Grok Voice] ⚠️  Twilio sent audio but Grok not ready yet`);
@@ -66,14 +70,21 @@ export function setupGrokVoiceBridge(wss) {
       }
     });
 
+    // FULL logging of everything xAI sends back
     grokWS.on('message', (data) => {
       const event = JSON.parse(data);
+      console.log(`[Grok Voice] ← xAI event: ${event.type}`);
+      
       if (event.type === 'response.audio.delta') {
         twilioWS.send(JSON.stringify({
           event: 'media',
           media: { payload: event.delta }
         }));
         console.log(`[Grok Voice] ← Audio received from xAI (${event.delta.length} bytes)`);
+      }
+      
+      if (event.type === 'error') {
+        console.error(`[Grok Voice ERROR] xAI returned error:`, event);
       }
     });
 
