@@ -12,7 +12,27 @@ export function setupGrokVoiceBridge(wss) {
     const url = new URL(req.url, 'https://dummy');
     const callType = url.searchParams.get('type') || 'lead';
     const systemPrompt = callType === 'hr' ? HR_SYSTEM_PROMPT : SYSTEM_PROMPT;
+let streamSid = null;
 
+twilioWS.on('message', (message) => {
+  const msg = JSON.parse(message);
+  
+  if (msg.event === 'start') {
+    streamSid = msg.start.streamSid;
+    console.log(`[Grok Voice] Stream started with streamSid: ${streamSid}`);
+  }
+  
+  if (msg.event === 'media' && streamSid) {
+    if (!grokReady) {
+      console.log(`[Grok Voice] ⚠️  Twilio sent audio but Grok not ready yet`);
+      return;
+    }
+    grokWS.send(JSON.stringify({
+      type: "input_audio_buffer.append",
+      audio: msg.media.payload
+    }));
+  }
+});
     console.log(`[Grok Voice] XAI_API_KEY loaded: ${process.env.XAI_API_KEY ? 'YES (length: ' + process.env.XAI_API_KEY.length + ')' : 'NO'}`);
     console.log(`[Grok Voice] ✅ Twilio connected – type: ${callType}`);
 
@@ -75,13 +95,14 @@ export function setupGrokVoiceBridge(wss) {
       const event = JSON.parse(data);
       console.log(`[Grok Voice] ← xAI event: ${event.type}`);
       
-    if (event.type === 'response.output_audio.delta') {
-        twilioWS.send(JSON.stringify({
-          event: 'media',
-          media: { payload: event.delta }
-        }));
-        console.log(`[Grok Voice] ← Audio received from xAI (${event.delta.length} bytes)`);
-      }
+  if (event.type === 'response.output_audio.delta' && streamSid) {
+  twilioWS.send(JSON.stringify({
+    event: 'media',
+    streamSid: streamSid,
+    media: { payload: event.delta }
+  }));
+  console.log(`[Grok Voice] ← Audio sent to caller (${event.delta.length} bytes)`);
+}
       
       if (event.type === 'error') {
         console.error(`[Grok Voice ERROR] xAI returned error:`, event);
