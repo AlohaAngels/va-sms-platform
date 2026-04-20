@@ -94,7 +94,7 @@ app.post("/webhook/sms-status", (req, res) => {
 });
 
 // ============================================
-// VOICE WEBHOOK — Greeting + Grok Voice
+// VOICE WEBHOOK — With Greeting
 // ============================================
 app.post("/webhook/voice", (req, res) => {
   const { To } = req.body;
@@ -103,13 +103,13 @@ app.post("/webhook/voice", (req, res) => {
 
   const twiml = new twilio.twiml.VoiceResponse();
 
-  // Greeting plays immediately (while Grok connection finishes)
+  // Greeting plays immediately
   twiml.say(
     { voice: "Polly.Joanna", language: "en-US" },
     "Hello, thank you for calling Visiting Angels of Boise. One moment while I connect you with our AI assistant Lily."
   );
 
-  // Start the Grok stream
+  // Start Grok stream
   twiml.connect({
     action: "/webhook/voice-status"
   }).stream({
