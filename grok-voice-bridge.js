@@ -1,8 +1,8 @@
 // ============================================
 // Grok Voice Agent Bridge for Twilio Media Streams
-// (with error logging so we can see what's failing)
+// (Clean version with proper closing braces + error logging)
 // ============================================
-import WebSocket from 'ws';   // Changed to default import for reliability
+import WebSocket from 'ws';
 import { SYSTEM_PROMPT } from './system-prompt.js';
 import { HR_SYSTEM_PROMPT } from './hr-system-prompt.js';
 
@@ -35,6 +35,7 @@ export function setupGrokVoiceBridge(wss) {
         }
       }));
       grokReady = true;
+      console.log(`[Grok Voice] Grok session started for ${callType}`);
     });
 
     grokWS.on('error', (err) => {
@@ -47,10 +48,7 @@ export function setupGrokVoiceBridge(wss) {
 
     // Twilio audio → Grok
     twilioWS.on('message', (message) => {
-      if (!grokReady) {
-        console.log(`[Grok Voice] Twilio sent audio but Grok not ready yet`);
-        return;
-      }
+      if (!grokReady) return;
       const msg = JSON.parse(message);
       if (msg.event === 'media') {
         grokWS.send(JSON.stringify({
@@ -67,3 +65,12 @@ export function setupGrokVoiceBridge(wss) {
         twilioWS.send(JSON.stringify({
           event: 'media',
           media: { payload: event.delta }
+        }));
+      }
+    });
+
+    // Cleanup
+    twilioWS.on('close', () => grokWS.close());
+    grokWS.on('close', () => twilioWS.close());
+  });
+}
