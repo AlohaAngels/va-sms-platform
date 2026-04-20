@@ -33,7 +33,7 @@ export function setupGrokVoiceBridge(wss) {
           instructions: "You are a warm, friendly, professional AI assistant for Visiting Angels of Boise. Help the caller with in-home care questions. Be natural, concise, and speak like a real person on the phone. Ask one question at a time and listen carefully.",
           voice: "ara",
           input_audio_format: "g711_ulaw",
-          output_audio_format: "g711_ulaw",
+          output_audio_format: "linear16",
           turn_detection: { type: "server_vad" }
         }
       }));
