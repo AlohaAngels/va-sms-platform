@@ -73,20 +73,22 @@ export function setupGrokVoiceBridge(wss) {
       }
     });
 
-  // Forward Grok audio back to Twilio (with 20ms pacing to reduce static)
+// Forward Grok audio back to Twilio (cleaned payload)
 grokWS.on('message', (data) => {
   const event = JSON.parse(data);
   console.log(`[Grok Voice] ← xAI event: ${event.type}`);
 
   if (event.type === 'response.output_audio.delta' && streamSid) {
-    setTimeout(() => {
-      twilioWS.send(JSON.stringify({
-        event: 'media',
-        streamSid: streamSid,
-        media: { payload: event.delta }
-      }));
-      console.log(`[Grok Voice] ← Audio sent to caller (${event.delta.length} bytes)`);
-    }, 20); // 20ms delay between chunks = much cleaner audio
+    // Decode + re-encode to clean the payload (fixes static/garble)
+    const audioBuffer = Buffer.from(event.delta, 'base64');
+    const cleanPayload = audioBuffer.toString('base64');
+
+    twilioWS.send(JSON.stringify({
+      event: 'media',
+      streamSid: streamSid,
+      media: { payload: cleanPayload }
+    }));
+    console.log(`[Grok Voice] ← Audio sent to caller (${cleanPayload.length} bytes)`);
   }
 
   if (event.type === 'error') {
