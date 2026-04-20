@@ -31,7 +31,7 @@ export function setupGrokVoiceBridge(wss) {
       grokWS.send(JSON.stringify({
         type: "session.update",
         session: {
-          instructions: systemPrompt + "\n\nYou are now speaking live on the phone. Be warm, natural, and concise. Use friendly tone and natural pauses.",
+          instructions: "You are a warm, friendly, professional AI assistant for Visiting Angels of Boise. Help the caller with in-home care questions. Be natural, concise, and speak like a real person on the phone. Ask one question at a time and listen carefully.",
           voice: "ara",
           input_audio_format: "g711_ulaw",
           output_audio_format: "g711_ulaw",
