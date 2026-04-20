@@ -79,22 +79,17 @@ grokWS.on('message', (data) => {
   console.log(`[Grok Voice] ← xAI event: ${event.type}`);
 
   if (event.type === 'response.output_audio.delta' && streamSid) {
-    // Decode + re-encode to clean the payload (fixes static/garble)
-    const audioBuffer = Buffer.from(event.delta, 'base64');
-    const cleanPayload = audioBuffer.toString('base64');
+  const deltaType = typeof event.delta;
+  const deltaPreview = typeof event.delta === 'string' ? event.delta.substring(0, 30) : 'NOT A STRING';
+  console.log(`[Grok Voice] delta type: ${deltaType}, preview: ${deltaPreview}`);
 
-    twilioWS.send(JSON.stringify({
-      event: 'media',
-      streamSid: streamSid,
-      media: { payload: cleanPayload }
-    }));
-    console.log(`[Grok Voice] ← Audio sent to caller (${cleanPayload.length} bytes)`);
-  }
-
-  if (event.type === 'error') {
-    console.error(`[Grok Voice ERROR] xAI returned error:`, event);
-  }
-});
+  twilioWS.send(JSON.stringify({
+    event: 'media',
+    streamSid: streamSid,
+    media: { payload: event.delta }
+  }));
+  console.log(`[Grok Voice] ← Audio sent to caller`);
+}
 
     twilioWS.on('close', () => grokWS.close());
     grokWS.on('close', () => twilioWS.close());
