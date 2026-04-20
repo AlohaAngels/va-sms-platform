@@ -27,7 +27,7 @@ export function setupGrokVoiceBridge(wss) {
         type: "session.update",
         session: {
           instructions: systemPrompt + "\n\nYou are now speaking live on the phone. Be warm, natural, and concise. Use friendly tone and natural pauses.",
-          voice: "alloy",           // Change to "echo", "fable", "onyx", "nova", or "shimmer" if you want a different voice
+         voice: "ara",           // Warm, friendly female voice — perfect for customer service / leads
           input_audio_format: "g711_ulaw",
           output_audio_format: "g711_ulaw",
           turn_detection: { type: "server_vad" }
