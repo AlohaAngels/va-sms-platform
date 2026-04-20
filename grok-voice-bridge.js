@@ -1,6 +1,5 @@
 // ============================================
-// Grok Voice Agent Bridge for Twilio Media Streams
-// (Clean version with proper closing braces + error logging)
+// Grok Voice Agent Bridge - Verbose Logging Version
 // ============================================
 import WebSocket from 'ws';
 import { SYSTEM_PROMPT } from './system-prompt.js';
@@ -14,7 +13,7 @@ export function setupGrokVoiceBridge(wss) {
     const callType = url.searchParams.get('type') || 'lead';
     const systemPrompt = callType === 'hr' ? HR_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
-    console.log(`[Grok Voice] New call connected — type: ${callType}`);
+    console.log(`[Grok Voice] ✅ Twilio connected — type: ${callType}`);
 
     const grokWS = new WebSocket(XAI_URL, {
       headers: { Authorization: `Bearer ${process.env.XAI_API_KEY}` }
@@ -23,19 +22,24 @@ export function setupGrokVoiceBridge(wss) {
     let grokReady = false;
 
     grokWS.on('open', () => {
-      console.log(`[Grok Voice] Connected to xAI — sending session.update`);
-      grokWS.send(JSON.stringify({
-        type: "session.update",
-        session: {
-          instructions: systemPrompt + "\n\nYou are now speaking live on the phone. Be warm, natural, and concise. Use friendly tone and natural pauses.",
-          voice: "ara",
-          input_audio_format: "g711_ulaw",
-          output_audio_format: "g711_ulaw",
-          turn_detection: { type: "server_vad" }
-        }
-      }));
-      grokReady = true;
-      console.log(`[Grok Voice] Grok session started for ${callType}`);
+      console.log(`[Grok Voice] ✅ Connected to xAI realtime API`);
+      
+      try {
+        grokWS.send(JSON.stringify({
+          type: "session.update",
+          session: {
+            instructions: systemPrompt + "\n\nYou are now speaking live on the phone. Be warm, natural, and concise. Use friendly tone and natural pauses.",
+            voice: "ara",
+            input_audio_format: "g711_ulaw",
+            output_audio_format: "g711_ulaw",
+            turn_detection: { type: "server_vad" }
+          }
+        }));
+        console.log(`[Grok Voice] ✅ session.update sent`);
+        grokReady = true;
+      } catch (err) {
+        console.error(`[Grok Voice ERROR] Failed to send session.update:`, err);
+      }
     });
 
     grokWS.on('error', (err) => {
@@ -43,34 +47,59 @@ export function setupGrokVoiceBridge(wss) {
     });
 
     grokWS.on('close', (code, reason) => {
-      console.log(`[Grok Voice] xAI WebSocket closed — code: ${code}, reason: ${reason}`);
+      console.log(`[Grok Voice] xAI WebSocket closed — code: ${code}, reason: ${reason || 'none'}`);
     });
 
     // Twilio audio → Grok
     twilioWS.on('message', (message) => {
-      if (!grokReady) return;
-      const msg = JSON.parse(message);
-      if (msg.event === 'media') {
-        grokWS.send(JSON.stringify({
-          type: "input_audio_buffer.append",
-          audio: msg.media.payload
-        }));
+      if (!grokReady) {
+        console.log(`[Grok Voice] ⚠️  Twilio sent audio but Grok not ready yet`);
+        return;
+      }
+      try {
+        const msg = JSON.parse(message);
+        if (msg.event === 'media') {
+          grokWS.send(JSON.stringify({
+            type: "input_audio_buffer.append",
+            audio: msg.media.payload
+          }));
+          console.log(`[Grok Voice] → Audio sent to xAI (${msg.media.payload.length} bytes)`);
+        }
+      } catch (err) {
+        console.error(`[Grok Voice ERROR] Failed to forward audio:`, err);
       }
     });
 
     // Grok audio → Twilio
     grokWS.on('message', (data) => {
-      const event = JSON.parse(data);
-      if (event.type === 'response.audio.delta') {
-        twilioWS.send(JSON.stringify({
-          event: 'media',
-          media: { payload: event.delta }
-        }));
+      try {
+        const event = JSON.parse(data);
+        
+        if (event.type === 'response.audio.delta') {
+          twilioWS.send(JSON.stringify({
+            event: 'media',
+            media: { payload: event.delta }
+          }));
+          console.log(`[Grok Voice] ← Audio received from xAI (${event.delta.length} bytes)`);
+        }
+        
+        if (event.type === 'error') {
+          console.error(`[Grok Voice ERROR] xAI returned error:`, event);
+        }
+        
+        if (event.type === 'session.created') {
+          console.log(`[Grok Voice] ✅ xAI session created successfully`);
+        }
+      } catch (err) {
+        console.error(`[Grok Voice ERROR] Failed to process xAI message:`, err);
       }
     });
 
     // Cleanup
-    twilioWS.on('close', () => grokWS.close());
+    twilioWS.on('close', () => {
+      console.log(`[Grok Voice] Twilio call ended`);
+      grokWS.close();
+    });
     grokWS.on('close', () => twilioWS.close());
   });
 }
