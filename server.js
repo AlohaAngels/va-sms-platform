@@ -16,6 +16,8 @@ import { processEmailQueue } from "./email-followups.js";
 import { sendWeeklyReport } from "./weekly-report.js";
 import { verifyCalendarAccess } from "./google-calendar.js";
 import { processTextQueue } from "./text-followups.js";
+import { WebSocketServer } from 'ws';
+import { setupGrokVoiceBridge } from './grok-voice-bridge.js';
 
 dotenv.config();
 
@@ -91,29 +93,32 @@ app.post("/webhook/sms-status", (req, res) => {
   res.sendStatus(200);
 });
 
-// ─── Voice Call Handler ───
-// If someone calls the SMS number, play a message and redirect to office
+// ============================================
+// VOICE WEBHOOK — Now powers Grok realtime voice
+// ============================================
 app.post("/webhook/voice", (req, res) => {
+  const { To } = req.body;
+  const hrNumber = process.env.TWILIO_HR_PHONE_NUMBER || "";
+  const callType = To === hrNumber ? "hr" : "lead";
+
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.say(
-    { voice: "Polly.Joanna", language: "en-US" },
-    "Thank you for calling Visiting Angels of Boise. " +
-    "This number is set up for text messaging. " +
-    "Let me connect you with our office right now."
-  );
-  twiml.dial("+12088883611");
+  twiml.connect({
+    action: "/webhook/voice-status"
+  }).stream({
+    url: `wss://${req.get('host')}/media-stream?type=${callType}`,
+    bidirectional: true
+  });
+
   res.type("text/xml").send(twiml.toString());
-  console.log(`📞 Voice call from ${req.body.From} — redirected to office`);
+  console.log(`📞 ${callType.toUpperCase()} voice call routed to Grok Voice Agent`);
 });
+
 app.get("/webhook/voice", (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
-  twiml.say(
-    { voice: "Polly.Joanna", language: "en-US" },
-    "Thank you for calling Visiting Angels of Boise. " +
-    "This number is set up for text messaging. " +
-    "Let me connect you with our office right now."
-  );
-  twiml.dial("+12088883611");
+  twiml.connect().stream({
+    url: `wss://${req.get('host')}/media-stream?type=lead`,
+    bidirectional: true
+  });
   res.type("text/xml").send(twiml.toString());
 });
 
@@ -550,21 +555,23 @@ cron.schedule("0 14 * * *", () => {
 console.log("⏰ Scheduled: Email + Text queue processing (every 5 min)");
 console.log("⏰ Scheduled: Daily report (7am MT)");
 
-app.listen(PORT, () => {
+// ─── Start server + WebSocket for Grok Voice ───
+const server = app.listen(PORT, () => {
   console.log(`
   ╔══════════════════════════════════════════════╗
-  ║   Visiting Angels AI SMS Platform (v2.1)     ║
+  ║   Visiting Angels AI SMS Platform (v2.2)     ║
+  ║   + Grok Voice Agent NOW ACTIVE              ║
   ║   Running on port ${PORT}                        ║
   ║                                              ║
-  ║   Webhook:     /webhook/sms                  ║
+  ║   SMS Webhook: /webhook/sms                  ║
+  ║   Voice Webhook: /webhook/voice              ║
   ║   Health:      /health                       ║
-  ║   Leads API:   /api/leads                    ║
-  ║   Email Queue: /api/emails                   ║
-  ║   Test Report: /api/report/test              ║
-  ║   Test Calendar:/api/calendar/test           ║
-  ║   Demo:        /demo                         ║
   ╚══════════════════════════════════════════════╝
   `);
 });
+
+const wss = new WebSocketServer({ server });
+setupGrokVoiceBridge(wss);
+
 
 export default app;
