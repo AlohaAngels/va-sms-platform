@@ -75,7 +75,7 @@ export function setupGrokVoiceBridge(wss) {
       const event = JSON.parse(data);
       console.log(`[Grok Voice] ← xAI event: ${event.type}`);
       
-      if (event.type === 'response.audio.delta') {
+    if (event.type === 'response.output_audio.delta') {
         twilioWS.send(JSON.stringify({
           event: 'media',
           media: { payload: event.delta }
