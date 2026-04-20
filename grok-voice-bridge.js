@@ -24,23 +24,19 @@ export function setupGrokVoiceBridge(wss) {
       headers: { Authorization: `Bearer ${process.env.XAI_API_KEY}` }
     });
 
-   grokWS.on('message', (data) => {
-  const event = JSON.parse(data);
-  console.log(`[Grok Voice] ← xAI event: ${event.type}`);
-
-  if (event.type === 'response.output_audio.delta' && streamSid) {
-    twilioWS.send(JSON.stringify({
-      event: 'media',
-      streamSid: streamSid,
-      media: { payload: event.delta }
-    }));
-    console.log(`[Grok Voice] ← Audio sent to caller (${event.delta.length} bytes)`);
-  }
-
-  if (event.type === 'error') {
-    console.error(`[Grok Voice ERROR] xAI returned error:`, event);
-  }
-});
+    grokWS.on('open', () => {
+      console.log(`[Grok Voice] ✅ Connected to xAI realtime API`);
+      
+      grokWS.send(JSON.stringify({
+        type: "session.update",
+        session: {
+          instructions: "You are a warm, friendly, professional AI assistant for Visiting Angels of Boise. Help the caller with in-home care questions. Be natural, concise, and speak like a real person on the phone. Ask one question at a time and listen carefully.",
+          voice: "ara",
+          input_audio_format: "g711_ulaw",
+          output_audio_format: "linear16",
+          turn_detection: { type: "server_vad" }
+        }
+      }));
       console.log(`[Grok Voice] ✅ session.update sent`);
 
       setTimeout(() => {
