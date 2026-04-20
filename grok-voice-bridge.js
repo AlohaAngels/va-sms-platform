@@ -79,6 +79,9 @@ grokWS.on('message', (data) => {
   console.log(`[Grok Voice] ← xAI event: ${event.type}`);
 
   if (event.type === 'response.output_audio.delta' && streamSid) {
+    const deltaType = typeof event.delta;
+const deltaPreview = typeof event.delta === 'string' ? event.delta.substring(0, 30) : 'NOT A STRING';
+console.log(`[Grok Voice] delta type: ${deltaType}, preview: ${deltaPreview}`);
     // Decode + re-encode to clean the payload (fixes static/garble)
     const audioBuffer = Buffer.from(event.delta, 'base64');
     const cleanPayload = audioBuffer.toString('base64');
