@@ -94,7 +94,7 @@ app.post("/webhook/sms-status", (req, res) => {
 });
 
 // ============================================
-// VOICE WEBHOOK — Now powers Grok realtime voice
+// VOICE WEBHOOK — Greeting + Grok Voice
 // ============================================
 app.post("/webhook/voice", (req, res) => {
   const { To } = req.body;
@@ -102,6 +102,14 @@ app.post("/webhook/voice", (req, res) => {
   const callType = To === hrNumber ? "hr" : "lead";
 
   const twiml = new twilio.twiml.VoiceResponse();
+
+  // Greeting plays immediately (while Grok connection finishes)
+  twiml.say(
+    { voice: "Polly.Joanna", language: "en-US" },
+    "Hello, thank you for calling Visiting Angels of Boise. One moment while I connect you with our AI assistant Lily."
+  );
+
+  // Start the Grok stream
   twiml.connect({
     action: "/webhook/voice-status"
   }).stream({
@@ -115,6 +123,10 @@ app.post("/webhook/voice", (req, res) => {
 
 app.get("/webhook/voice", (req, res) => {
   const twiml = new twilio.twiml.VoiceResponse();
+  twiml.say(
+    { voice: "Polly.Joanna", language: "en-US" },
+    "Hello, thank you for calling Visiting Angels of Boise. One moment while I connect you with our AI assistant Lily."
+  );
   twiml.connect().stream({
     url: `wss://${req.get('host')}/media-stream?type=lead`,
     bidirectional: true
